@@ -8,6 +8,19 @@
 
 #include "synth.h"
 
+float env_attac = DEFAULT_ENV_ATTACK;
+float env_hold = DEFAULT_ENV_HOLD;
+float env_decay = DEFAULT_ENV_DECAY;
+float env_release = DEFAULT_ENV_RELEASE;
+
+float h1 = 1.0;
+float h2 = 0.333;
+float h3 = 0.111;
+float h4 = 0.006;
+float h5 = 0.034;
+
+struct synth* synthesizer;
+
 jack_client_t* client;
 jack_nframes_t sample_rate;
 jack_port_t* output_port;
@@ -47,7 +60,8 @@ int main(int argc __attribute__((unused)), char** argv __attribute__((unused))) 
   jack_set_process_callback(client, process, 0);
 
   /* Configure Synth */
-  init_synth((long)sample_rate);
+  synthesizer = init_synth((long)sample_rate, env_attac, env_hold, env_decay, env_release,
+             h1, h2, h3, h4, h5);
   
   /* Connect to Jack Server. */
   if(jack_activate(client) != 0) {
@@ -76,17 +90,17 @@ int process(jack_nframes_t nframes, void* args __attribute__((unused))) {
     while(event_index < event_count && midiin_event.time <= i) {
       if((midiin_event.buffer[0] & 0xf0) == 0x90 &&
 	 midiin_event.buffer[2] != 0x00) {
-	note_on(midiin_event.buffer[1], midiin_event.buffer[2]);
+	note_on(synthesizer, midiin_event.buffer[1], midiin_event.buffer[2]);
       }
       else if((midiin_event.buffer[0] & 0xf0) == 0x80 ||
 	      ((midiin_event.buffer[0] & 0xf0) == 0x90 &&
 	       midiin_event.buffer[2] == 0x00 )) {
-	note_off(midiin_event.buffer[1]);
+	note_off(synthesizer, midiin_event.buffer[1]);
       }
       event_index++;
       jack_midi_event_get(&midiin_event, midiin_port_buffer, event_index);
     }
-    output_port_buffer[i] = next_frame();
+    output_port_buffer[i] = next_frame(synthesizer);
   }
   return 0;
 }
