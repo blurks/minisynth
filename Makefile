@@ -6,7 +6,7 @@ CC=gcc
 LIBS=-lm -ljack
 DEBUGFLAGS=-g -DDEBUG
 NODEBUGFLAGS=-DNDEBUG
-MAINDEPS=synth.o
+MAINDEPS=synth.o jackclient.o
 PREFIX=/usr
 
 ifndef DEBUG
@@ -39,6 +39,6 @@ dist: $(wildcard *.c) $(wildcard *.h) Makefile PKGBUILD
 	rm -rf $(DISTNAME)
 
 clean:
-	rm -rf *.o $(PROGNAME) *.tar.gz *.pkg.tar.xz $(DISTNAME)/
+	rm -rf *.o $(PROGNAME) *.tar.gz *.pkg.tar.xz $(DISTNAME)/ *~
 
 distclean: clean
