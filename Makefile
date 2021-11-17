@@ -1,7 +1,7 @@
 PROGNAME=synth
 VERSION=0.1
 DISTNAME=$(PROGNAME)-$(VERSION)
-CFLAGS=-std=c11 -Wall -Wextra -Wpedantic -O2
+CFLAGS=-std=c11 -Wall -Wextra -Wpedantic -O2 -DPROGNAME='"$(PROGNAME)"'
 CC=gcc
 LIBS=-lm -ljack
 DEBUGFLAGS=-g -DDEBUG
