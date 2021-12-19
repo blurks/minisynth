@@ -21,6 +21,9 @@ all: $(PROGNAME)
 $(PROGNAME): main.c $(MAINDEPS)
 	$(CC) $(CFLAGS) $(DEBUG) -o $@ main.c $(MAINDEPS) $(LIBS)
 
+gui: gui.c $(MAINDEPS)
+	$(CC) $(CFLAGS) $(DEBUG) -o gui gui.c $(MAINDEPS) $(LIBS) -lforms
+
 debug:
 	export DEBUG="$(DEBUGFLAGS)" && $(MAKE)
 

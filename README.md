@@ -3,6 +3,11 @@
 The goal is to create a simple midi synthesizer wich produces sinus
 based sounds. It should at least support jack and pulse-audio.
 
+## Dependencies
+
+* jack
+* xforms (only for gui)
+
 ## Features
 
 * User defined envelope (Attack, Hold, Sustain, Release)
