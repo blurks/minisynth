@@ -55,9 +55,28 @@ void note_on(struct synth* s, unsigned char note_index,
 
 void note_off(struct synth* s, unsigned char note_index) {
    struct note* n = &(s->note_array[(size_t) note_index]);
-   if(n->state != NOTE_OFF) {
+   if(n->state != NOTE_OFF && !s->sustain) {
       n->state = NOTE_RELEASE;
       n->last_event = n->on_since;
+   }
+   else if(n->state != NOTE_OFF && s-> sustain) {
+      n->state = NOTE_PEDAL;
+   }
+}
+
+void sustain_pedal(struct synth* s, unsigned char value) {
+   if(value == 0x7f) {
+      s->sustain = 1;
+   }
+   else {
+      s->sustain = 0;
+      // This could probably be integrated in note_envelope
+      for(unsigned char i=0; i<128; i++) {
+         struct note* n = &(s->note_array[(size_t) i]);
+         if(n->state == NOTE_PEDAL) {
+            note_off(s, i);
+         }
+      }
    }
 }
 
@@ -81,7 +100,7 @@ float note_envelope(struct synth* s, struct note* n) {
          n->last_event = n->on_since;
       }
    }
-   else if(n->state == NOTE_DECAY) {
+   else if(n->state == NOTE_DECAY || n->state == NOTE_PEDAL) {
       n->amplitude -= n->velocity * 1000.0f / (s->env_decay * s->framerate);
       if(n->amplitude <= 0.0f) {
          n->state = NOTE_OFF;
@@ -111,13 +130,29 @@ inline float sin_freq(struct synth* s, float freq, long frame) {
 }
 
 float note_waveform(struct synth* s, struct note* n) {
-   float normalizer = 1.0f + s->harmonics[0] + s->harmonics[1] + s->harmonics[2] +
-      s->harmonics[3] + s->harmonics[4];
+   float normalizer = 1.0f + fabsf(s->harmonics[0]) + fabsf(s->harmonics[1]) +
+      fabsf(s->harmonics[2]) + fabsf(s->harmonics[3]) + fabsf(s->harmonics[4]);
    float frame = sin_freq(s, n->freq, n->on_since);
    for(size_t i=0; i<5; i++) {
       frame += s->harmonics[i] * sin_freq(s, n->freq * (float)(i + 2), n->on_since);
    }
    return frame / normalizer;
+}
+
+float* waveform(struct synth* s, long num) {
+   struct note n = {
+      .freq = s->framerate / num,
+      .on_since = 0,
+      .last_event = 0,
+      .velocity = 1.0f,
+      .amplitude = 1.0f
+   };
+   float* frames = malloc(num * sizeof(float));
+   for(long i = 0; i < num; i++) {
+      frames[i] = note_waveform(s, &n);
+      n.on_since++;
+   }
+   return frames;
 }
 
 float note_nextframe(struct synth* s, struct note* n) {

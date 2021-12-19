@@ -6,7 +6,8 @@ enum note_state {
   NOTE_ATTACK,
   NOTE_HOLD,
   NOTE_DECAY,
-  NOTE_RELEASE
+  NOTE_RELEASE,
+  NOTE_PEDAL
 };
 
 struct note {
@@ -19,13 +20,14 @@ struct note {
 };
 
 struct synth {
-  long framerate;
-  struct note note_array[128];
-  float env_attac;
-  float env_hold;
-  float env_decay;
-  float env_release;
-  float harmonics[5];
+   long framerate;
+   struct note note_array[128];
+   float env_attac;
+   float env_hold;
+   float env_decay;
+   float env_release;
+   int sustain; // maybe use stdbool instead of int
+   float harmonics[5];
 };
 
 #define DEFAULT_ENV_ATTACK 50.0f
@@ -39,6 +41,7 @@ struct synth* init_synth(long framerate, float env_attac, float env_hold,
 void note_on(struct synth* s, unsigned char note_index,
              unsigned char velocity);
 void note_off(struct synth* s, unsigned char note_index);
+void sustain_pedal(struct synth* s, unsigned char value);
 float next_frame(struct synth* s);
-
+float* waveform(struct synth* s, long num);
 #endif
