@@ -39,12 +39,18 @@ static int process(jack_nframes_t nframes, void* arg)
       while(event_index < event_count && midiin_event.time <= i) {
          if((midiin_event.buffer[0] & 0xf0) == 0x90 &&
             midiin_event.buffer[2] != 0x00) {
-            jc->note_on(jc->callback_arg, midiin_event.buffer[1], midiin_event.buffer[2]);
+            jc->note_on(jc->callback_arg,
+                        midiin_event.buffer[1],
+                        midiin_event.buffer[2]);
          }
          else if((midiin_event.buffer[0] & 0xf0) == 0x80 ||
                  ((midiin_event.buffer[0] & 0xf0) == 0x90 &&
                   midiin_event.buffer[2] == 0x00 )) {
             jc->note_off(jc->callback_arg, midiin_event.buffer[1]);
+         }
+         else if(midiin_event.buffer[0] == 0xb0 &&
+                 midiin_event.buffer[1] == 0x40) {
+            jc->sustain(jc->callback_arg, midiin_event.buffer[2]);
          }
          event_index++;
          jack_midi_event_get(&midiin_event, midiin_port_buffer, event_index);
@@ -58,12 +64,14 @@ static int process(jack_nframes_t nframes, void* arg)
 jc_t* jc_init(char* client_name,
               void (*note_on_callback) (void* arg, unsigned char, unsigned char),
               void (*note_off_callback) (void* arg, unsigned char),
+              void (*sustain_callback) (void* arg, unsigned char),
               float (*next_frame_callback) (void* arg),
               void* callback_arg)
 {
    jc_t* jc = malloc(sizeof(jc_t));
    jc->note_on = note_on_callback;
    jc->note_off = note_off_callback;
+   jc->sustain = sustain_callback;
    jc->next_frame = next_frame_callback;
    jc->callback_arg = callback_arg;
   
