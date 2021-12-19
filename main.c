@@ -47,9 +47,8 @@ int main(int argc, char** argv)
 {
   char* optstr = "h1:2:3:4:5:a:o:d:r:";
   char opt;
-  float* arg;
   while((opt = getopt(argc, argv, optstr)) > 0) {
-    arg = NULL;
+    float* arg = NULL;
     switch(opt) {
     case 'h':
       usage(stdout);
@@ -108,6 +107,7 @@ int main(int argc, char** argv)
                        &note_on,
                        &note_off,
                        &next_frame,
+                       &sustain_pedal,
                        synthesizer);
 
   synthesizer->framerate = (long) jackclient->sample_rate;
