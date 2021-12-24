@@ -3,7 +3,7 @@
 This is a simple midi synthesizer wich produces sinus based sounds. Currently it
 only supports jack, but support for other audio systems is planned.
 
-![Screenshot of the GUI](./screenshot.pnd)
+![Screenshot of the GUI](./screenshot.png)
 
 ## Dependencies
 
