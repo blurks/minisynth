@@ -1,6 +1,5 @@
 /* TODO:
  * - get rid of global variables (might be impossible)
- * - envelope controls
  */
 #include <assert.h>
 #include <forms.h>
@@ -14,65 +13,50 @@
 FL_OBJECT* plot;
 struct synth* synthesizer;
 
-void draw_plot()
-{
-   long num = 200;
-   float* x = malloc(num * sizeof(float));
-   for(long i = 0; i < num; i++) {
-      x[i] = (float)i / (float)num;
-   }
-   float* y = waveform(synthesizer, num);
+void build_env_dial(int index, int x, int y, int w, int h);
+void build_env_dials(int x, int y, int w, int h);
+FL_FORM* build_gui();
+void build_harmonic_sliders(int x, int y, int w, int h);
+void build_harmonic_slider(int harmonic, int x, int y, int w, int h);
+void draw_plot();
+void env_dial_cb(FL_OBJECT* dial, long index);
+void harmonic_input_cb(FL_OBJECT* input, long harmonic);
+void harmonic_slider_cb(FL_OBJECT* slider, long harmonic);
+void update_harmonics(long harmonic, float val);
 
-   fl_set_xyplot_data(plot, x, y, num, NULL, NULL, NULL);
-   free(x);
-   free(y);     
+
+int main(int argc, char** argv)
+{
+   synthesizer = init_synth(48000,
+                            DEFAULT_ENV_ATTACK,
+                            DEFAULT_ENV_HOLD,
+                            DEFAULT_ENV_DECAY,
+                            DEFAULT_ENV_RELEASE,
+                            0.5, 0.0, 0.0, 0.0 , 0.0);
+
+   jc_t* jackclient = jc_init(
+      argv[0],
+      (void (*) (void*, unsigned char, unsigned char)) &note_on,
+      (void (*) (void*, unsigned char)) &note_off,
+      (void (*) (void*, unsigned char)) &sustain_pedal,
+      (float (*) (void*)) &next_frame,
+      synthesizer
+      );
+
+   synthesizer->framerate = (long) jackclient->sample_rate;
+
+   jc_activate(jackclient);
+   
+   fl_initialize(&argc, argv, 0, 0, 0);
+   FL_FORM* form = build_gui();
+   fl_show_form(form, FL_PLACE_FREE, FL_FULLBORDER, "minisynth");
+   fl_do_forms();
+
+   fl_hide_form(form);
+   fl_finish();
+   return 0;
 }
 
-void harmonic_slider_cb(FL_OBJECT* slider, long harmonic)
-{
-   synthesizer->harmonics[harmonic] = fl_get_slider_value(slider);
-   draw_plot(synthesizer);
-}
-
-void build_slider(int harmonic, int x, int y, int w, int h)
-{
-   char label[16];
-   snprintf(label, 16, "h%d", harmonic + 1);
-   FL_OBJECT* obj = fl_add_valslider(FL_VERT_NICE_SLIDER, x, y, w, h, label);
-   fl_set_slider_bounds(obj, 1.0, -1.0);
-   fl_set_slider_value(obj, synthesizer->harmonics[harmonic]);
-   fl_set_object_callback(obj, harmonic_slider_cb, harmonic);
-}
-
-void build_harmonic_sliders(int x, int y, int w, int h)
-{
-   int slider_num = 5;
-   int slider_width = w / slider_num;
-   for(int i = 0; i < slider_num; i++) {
-      build_slider(i, x + (slider_width * i), y, slider_width - 1, h-20);
-   }
-}
-
-void env_dial_cb(FL_OBJECT* dial, long index)
-{
-   float val = fl_get_dial_value(dial);
-   switch(index) {
-   case 0:
-      synthesizer->env_attac = val;
-      break;
-   case 1:
-      synthesizer->env_hold = val;
-      break;
-   case 2:
-      synthesizer->env_decay = val;
-      break;
-   case 3:
-      synthesizer->env_release = val;
-      break;
-   default:
-      break;
-   }
-}
 
 void build_env_dial(int index, int x, int y, int w, int h)
 {
@@ -109,12 +93,14 @@ void build_env_dial(int index, int x, int y, int w, int h)
    fl_set_dial_value(obj, val);
 }
 
+
 void build_env_dials(int x, int y, int w, int h)
 {
    for(int i=0; i<4; i++) {
       build_env_dial(i, x, y + (i * h / 4), w, h / 4 - 20);
    }
 }
+
 
 FL_FORM* build_gui()
 {
@@ -139,34 +125,98 @@ FL_FORM* build_gui()
    return form;
 }
 
-int main(int argc, char** argv)
+
+void build_harmonic_sliders(int x, int y, int w, int h)
 {
-   synthesizer = init_synth(48000,
-                            DEFAULT_ENV_ATTACK,
-                            DEFAULT_ENV_HOLD,
-                            DEFAULT_ENV_DECAY,
-                            DEFAULT_ENV_RELEASE,
-                            0.5, 0.0, 0.0, 0.0 , 0.0);
+   int slider_num = 5;
+   int slider_width = w / slider_num;
+   for(int i = 0; i < slider_num; i++) {
+      build_harmonic_slider(i,
+                            x + (slider_width * i),
+                            y,
+                            slider_width - 1,
+                            h - 20);
+   }
+}
 
-   jc_t* jackclient = jc_init(
-      argv[0],
-      (void (*) (void*, unsigned char, unsigned char)) &note_on,
-      (void (*) (void*, unsigned char)) &note_off,
-      (void (*) (void*, unsigned char)) &sustain_pedal,
-      (float (*) (void*)) &next_frame,
-      synthesizer
-      );
 
-   synthesizer->framerate = (long) jackclient->sample_rate;
+void build_harmonic_slider(int harmonic, int x, int y, int w, int h)
+{
+   char label[16];
+   snprintf(label, 16, "h%d", harmonic + 1);
+   FL_OBJECT* slider = fl_add_slider(FL_VERT_NICE_SLIDER,
+                                  x , y + 20, w , h - 20, label);
+   fl_set_slider_bounds(slider, 1.0, -1.0);
+   fl_set_slider_value(slider, synthesizer->harmonics[harmonic]);
+   fl_set_object_callback(slider, harmonic_slider_cb, harmonic);
 
-   jc_activate(jackclient);
-   
-   fl_initialize(&argc, argv, 0, 0, 0);
-   FL_FORM* form = build_gui();
-   fl_show_form(form, FL_PLACE_FREE, FL_FULLBORDER, "minisynth");
-   fl_do_forms();
+   FL_OBJECT* input = fl_add_spinner(FL_FLOAT_SPINNER, x, y, w, 20, NULL);
+   fl_set_spinner_value(input, synthesizer->harmonics[harmonic]);
+   fl_set_spinner_bounds(input, -1.0, 1.0);
+   fl_set_spinner_precision(input, 3);
+   fl_set_spinner_step(input, 0.001);
+   fl_set_object_callback(input, harmonic_input_cb, harmonic);
 
-   fl_hide_form(form);
-   fl_finish();
-   return 0;
+   slider->u_vdata = input;
+   input->u_vdata = slider;
+}
+
+
+void draw_plot()
+{
+   long num = 200;
+   float* x = malloc(num * sizeof(float));
+   for(long i = 0; i < num; i++) {
+      x[i] = (float)i / (float)num;
+   }
+   float* y = waveform(synthesizer, num);
+
+   fl_set_xyplot_data(plot, x, y, num, NULL, NULL, NULL);
+   free(x);
+   free(y);
+}
+
+
+void env_dial_cb(FL_OBJECT* dial, long index)
+{
+   float val = fl_get_dial_value(dial);
+   switch(index) {
+   case 0:
+      synthesizer->env_attac = val;
+      break;
+   case 1:
+      synthesizer->env_hold = val;
+      break;
+   case 2:
+      synthesizer->env_decay = val;
+      break;
+   case 3:
+      synthesizer->env_release = val;
+      break;
+   default:
+      break;
+   }
+}
+
+
+void harmonic_slider_cb(FL_OBJECT* slider, long harmonic)
+{
+   float val = fl_get_slider_value(slider);
+   fl_set_spinner_value(slider->u_vdata, val);
+   update_harmonics(harmonic, val);
+}
+
+
+void harmonic_input_cb(FL_OBJECT* input, long harmonic)
+{
+   float val = (float) fl_get_spinner_value(input);
+   fl_set_slider_value(input->u_vdata, val);
+   update_harmonics(harmonic, val);
+}
+
+
+void update_harmonics(long harmonic, float val)
+{
+   synthesizer->harmonics[harmonic] = val;
+   draw_plot(synthesizer);
 }
