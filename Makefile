@@ -13,16 +13,16 @@ ifndef DEBUG
 	DEBUG=$(NODEBUGFLAGS)
 endif
 
-all: $(PROGNAME)
+all: $(PROGNAME) gui
 
 %.o : %.c
 	$(CC) $(CFLAGS) $(DEBUG) -c $^
 
 $(PROGNAME): main.c $(MAINDEPS)
-	$(CC) $(CFLAGS) $(DEBUG) -o $@ main.c $(MAINDEPS) $(LIBS)
+	$(CC) $(CFLAGS) $(DEBUG) -o $@-cli main.c $(MAINDEPS) $(LIBS)
 
 gui: gui.c $(MAINDEPS)
-	$(CC) $(CFLAGS) $(DEBUG) -o gui gui.c $(MAINDEPS) $(LIBS) -lforms
+	$(CC) $(CFLAGS) $(DEBUG) -o $(PROGNAME) gui.c $(MAINDEPS) $(LIBS) -lforms
 
 debug:
 	export DEBUG="$(DEBUGFLAGS)" && $(MAKE)
@@ -42,6 +42,6 @@ dist: $(wildcard *.c) $(wildcard *.h) Makefile PKGBUILD
 	rm -rf $(DISTNAME)
 
 clean:
-	rm -rf *.o $(PROGNAME) *.tar.gz *.pkg.tar.xz $(DISTNAME)/ *~
+	rm -rf *.o $(PROGNAME) $(PROGNAME)-cli *.tar.gz *.pkg.tar.xz $(DISTNAME)/ *~
 
 distclean: clean
