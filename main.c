@@ -103,12 +103,15 @@ int main(int argc, char** argv)
                            env_release,
                            h1, h2, h3, h4, h5);
     
-  jackclient = jc_init(PROGNAME,
-                       &note_on,
-                       &note_off,
-                       &next_frame,
-                       &sustain_pedal,
-                       synthesizer);
+  jackclient = jc_init(
+     argv[0],
+     (void (*) (void*, unsigned char, unsigned char)) &note_on,
+     (void (*) (void*, unsigned char)) &note_off,
+     (void (*) (void*, unsigned char)) &sustain_pedal,
+     (float (*) (void*)) &next_frame,
+     synthesizer
+     );
+
 
   synthesizer->framerate = (long) jackclient->sample_rate;
 
