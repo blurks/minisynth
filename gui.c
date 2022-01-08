@@ -6,22 +6,29 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "synth.h"
 #include "jackclient.h"
+#include "save.h"
+#include "synth.h"
 
 
 FL_OBJECT* plot;
 struct synth* synthesizer;
 
+/* Drawing the gui */
 void build_env_dial(int index, int x, int y, int w, int h);
 void build_env_dials(int x, int y, int w, int h);
 FL_FORM* build_gui();
 void build_harmonic_sliders(int x, int y, int w, int h);
 void build_harmonic_slider(int harmonic, int x, int y, int w, int h);
-void draw_plot();
+void build_toolbar(int x, int y, int w, int h);
+/* Object callbacks */
 void env_dial_cb(FL_OBJECT* dial, long index);
 void harmonic_input_cb(FL_OBJECT* input, long harmonic);
 void harmonic_slider_cb(FL_OBJECT* slider, long harmonic);
+void save_btn_cb(FL_OBJECT* btn, long data);
+void load_btn_cb(FL_OBJECT* btn, long data);
+/* Other functions */
+void draw_plot();
 void update_harmonics(long harmonic, float val);
 
 
@@ -57,6 +64,7 @@ int main(int argc, char** argv)
    return 0;
 }
 
+/* Draw the gui */
 
 void build_env_dial(int index, int x, int y, int w, int h)
 {
@@ -105,20 +113,31 @@ void build_env_dials(int x, int y, int w, int h)
 FL_FORM* build_gui()
 {
    int width = 400;
+   int toolbar_height = 40;
    int height = 400;
-   FL_FORM* form = fl_bgn_form(FL_FLAT_BOX, width, height);
+   FL_FORM* form = fl_bgn_form(FL_FLAT_BOX, width, height  + toolbar_height);
 
-   build_harmonic_sliders(0, height / 2, width - 100, height / 2);
+   build_toolbar(0, 0, width, toolbar_height);
    
-   plot = fl_add_xyplot(FL_NORMAL_XYPLOT, 0, 0, width - 100, height / 2, NULL);
+   plot = fl_add_xyplot(FL_NORMAL_XYPLOT,
+                        0,
+                        toolbar_height,
+                        width - 100,
+                        height / 2,
+                        NULL);
    fl_set_xyplot_ygrid(plot, FL_GRID_MINOR);
    fl_set_xyplot_xbounds(plot, 0.0, 1.0);
    fl_set_xyplot_ybounds(plot, -1.0, 1.0);
    fl_set_xyplot_xtics(plot, 1, 0);
    fl_set_xyplot_ytics(plot, 2, 2);
    draw_plot(synthesizer);
-
-   build_env_dials(300, 0, 100, height);
+   
+   build_harmonic_sliders(0,
+                          toolbar_height + height / 2,
+                          width - 100,
+                          height / 2);
+   
+   build_env_dials(300, toolbar_height, 100, height);
    
    fl_end_form();
    
@@ -162,20 +181,16 @@ void build_harmonic_slider(int harmonic, int x, int y, int w, int h)
 }
 
 
-void draw_plot()
+void build_toolbar(int x, int y, int w, int h)
 {
-   long num = 200;
-   float* x = malloc(num * sizeof(float));
-   for(long i = 0; i < num; i++) {
-      x[i] = (float)i / (float)num;
-   }
-   float* y = waveform(synthesizer, num);
-
-   fl_set_xyplot_data(plot, x, y, num, NULL, NULL, NULL);
-   free(x);
-   free(y);
+   FL_OBJECT* save_btn = fl_add_button(FL_BUTTON, x, y, w / 2, h, "Save");
+   FL_OBJECT* load_btn = fl_add_button(FL_BUTTON, x + w / 2, y, w / 2, h,
+                                       "Load");
+   fl_set_object_callback(save_btn, save_btn_cb, 0);
+   fl_set_object_callback(load_btn, load_btn_cb, 0);
 }
 
+/* Object callbacks */
 
 void env_dial_cb(FL_OBJECT* dial, long index)
 {
@@ -212,6 +227,44 @@ void harmonic_input_cb(FL_OBJECT* input, long harmonic)
    float val = (float) fl_get_spinner_value(input);
    fl_set_slider_value(input->u_vdata, val);
    update_harmonics(harmonic, val);
+}
+
+
+void save_btn_cb(__attribute__((unused)) FL_OBJECT* btn,
+                 __attribute__((unused)) long data)
+{
+   char* dir = getenv("HOME");
+   if(!dir) {
+      dir = "/home/";
+   }
+   const char* filename = fl_show_fselector("Save settings", dir, "*",
+                                            "minisynth.preset");
+   if(save_settings(synthesizer, filename) < 0) {
+      perror(filename);
+   }
+}
+
+
+void load_btn_cb(__attribute__((unused)) FL_OBJECT* btn,
+                 __attribute__((unused)) long data)
+{
+   fl_show_fselector("Load settings", "/home/", "*", NULL);
+}
+
+/* Other functions */
+
+void draw_plot()
+{
+   long num = 200;
+   float* x = malloc(num * sizeof(float));
+   for(long i = 0; i < num; i++) {
+      x[i] = (float)i / (float)num;
+   }
+   float* y = waveform(synthesizer, num);
+
+   fl_set_xyplot_data(plot, x, y, num, NULL, NULL, NULL);
+   free(x);
+   free(y);
 }
 
 

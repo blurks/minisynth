@@ -1,25 +1,25 @@
 PROGNAME=synth
 VERSION=0.1
 DISTNAME=$(PROGNAME)-$(VERSION)
-CFLAGS=-std=c11 -Wall -Wextra -Wpedantic -O2 -DPROGNAME='"$(PROGNAME)"'
+CFLAGS=-std=c11 -Wall -Wextra -pedantic -O3 -march=native -mcpu=native -mtune=native -DPROGNAME='"$(PROGNAME)"'
 CC=gcc
 LIBS=-lm -ljack
-DEBUGFLAGS=-g -DDEBUG
+DEBUGFLAGS=-g -Og -DDEBUG
 NODEBUGFLAGS=-DNDEBUG
-MAINDEPS=synth.o jackclient.o
+MAINDEPS=synth.o jackclient.o save.o
 PREFIX=/usr
 
 ifndef DEBUG
 	DEBUG=$(NODEBUGFLAGS)
 endif
 
-all: $(PROGNAME) gui
+all: cli gui
 
 %.o : %.c
 	$(CC) $(CFLAGS) $(DEBUG) -c $^
 
-$(PROGNAME): main.c $(MAINDEPS)
-	$(CC) $(CFLAGS) $(DEBUG) -o $@-cli main.c $(MAINDEPS) $(LIBS)
+cli: main.c $(MAINDEPS)
+	$(CC) $(CFLAGS) $(DEBUG) -o $(PROGNAME)-cli main.c $(MAINDEPS) $(LIBS)
 
 gui: gui.c $(MAINDEPS)
 	$(CC) $(CFLAGS) $(DEBUG) -o $(PROGNAME) gui.c $(MAINDEPS) $(LIBS) -lforms
