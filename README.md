@@ -7,8 +7,8 @@ only supports jack, but support for other audio systems is planned.
 
 ## Dependencies
 
-* jack
-* xforms (only for gui)
+* [jack2](https://jackaudio.org/)
+* [xforms](http://xforms-toolkit.org/) (only for gui)
 
 ## Features
 
