@@ -1,2 +1,3 @@
 *.o
 synth
+synth-cli
